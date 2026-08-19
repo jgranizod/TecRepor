@@ -62,8 +62,12 @@
             <input id="clientName" name="clientName" autocomplete="organization" placeholder="Nombre del cliente" required />
           </label>
           <label>
-            Tecnico
-            <input id="technicianName" name="technicianName" autocomplete="name" placeholder="Nombre del tecnico" required />
+            Trabajador principal
+            <input id="technicianName" name="technicianName" autocomplete="name" placeholder="Nombre del trabajador principal" required />
+          </label>
+          <label class="full">
+            Trabajador/es adicionales
+            <input id="additionalWorkers" name="additionalWorkers" placeholder="Nombres separados por coma si aplica" />
           </label>
           <label>
             Tipo de maquina
@@ -88,6 +92,34 @@
             Fecha
             <input id="visitDate" name="visitDate" type="date" required />
           </label>
+          <label>
+            Hora de ida al servicio
+            <input id="departureTime" name="departureTime" type="time" />
+          </label>
+          <label>
+            Hora de inicio de trabajo
+            <input id="workStartTime" name="workStartTime" type="time" />
+          </label>
+          <label>
+            Hora de finalizacion
+            <input id="workEndTime" name="workEndTime" type="time" />
+          </label>
+          <label>
+            Hora de salida
+            <input id="returnTime" name="returnTime" type="time" />
+          </label>
+          <label>
+            Km ida
+            <input id="kmStart" name="kmStart" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Kilometraje al salir" />
+          </label>
+          <label>
+            Km regreso
+            <input id="kmEnd" name="kmEnd" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Kilometraje al regresar" />
+          </label>
+          <label>
+            Km usados
+            <input id="kmUsed" name="kmUsed" type="text" placeholder="Se calcula automatico" readonly />
+          </label>
         </form>
 
         <section class="panel">
@@ -109,26 +141,51 @@
             </div>
           </div>
           <div class="evidence-grid">
-            <label class="photo-drop">
-              <span>Antes de trabajar</span>
-              <input id="photoBefore" type="file" accept="image/*" capture="environment" multiple />
+            <div class="photo-drop photo-picker">
+              <span class="field-label">Antes de trabajar</span>
+              <div class="photo-actions">
+                <label class="secondary-btn">Tomar foto<input type="file" accept="image/*" capture="environment" multiple data-photo-bucket="before" /></label>
+                <label class="secondary-btn">Galeria<input type="file" accept="image/*" multiple data-photo-bucket="before" /></label>
+              </div>
               <div id="previewBefore" class="preview-list"></div>
-            </label>
-            <label class="photo-drop">
-              <span>Trabajo realizado</span>
-              <input id="photoWork" type="file" accept="image/*" capture="environment" multiple />
+            </div>
+            <div class="photo-drop photo-picker">
+              <span class="field-label">Trabajo realizado</span>
+              <div class="photo-actions">
+                <label class="secondary-btn">Tomar foto<input type="file" accept="image/*" capture="environment" multiple data-photo-bucket="work" /></label>
+                <label class="secondary-btn">Galeria<input type="file" accept="image/*" multiple data-photo-bucket="work" /></label>
+              </div>
               <div id="previewWork" class="preview-list"></div>
-            </label>
-            <label class="photo-drop">
-              <span>Pruebas</span>
-              <input id="photoTests" type="file" accept="image/*" capture="environment" multiple />
+            </div>
+            <div class="photo-drop photo-picker">
+              <span class="field-label">Pruebas</span>
+              <div class="photo-actions">
+                <label class="secondary-btn">Tomar foto<input type="file" accept="image/*" capture="environment" multiple data-photo-bucket="tests" /></label>
+                <label class="secondary-btn">Galeria<input type="file" accept="image/*" multiple data-photo-bucket="tests" /></label>
+              </div>
               <div id="previewTests" class="preview-list"></div>
-            </label>
+            </div>
+            <div class="photo-drop photo-picker">
+              <span class="field-label">Factura frente</span>
+              <div class="photo-actions">
+                <label class="secondary-btn">Tomar foto<input type="file" accept="image/*" capture="environment" multiple data-photo-bucket="invoiceFront" /></label>
+                <label class="secondary-btn">Galeria<input type="file" accept="image/*" multiple data-photo-bucket="invoiceFront" /></label>
+              </div>
+              <div id="previewInvoiceFront" class="preview-list"></div>
+            </div>
+            <div class="photo-drop photo-picker">
+              <span class="field-label">Factura reverso</span>
+              <div class="photo-actions">
+                <label class="secondary-btn">Tomar foto<input type="file" accept="image/*" capture="environment" multiple data-photo-bucket="invoiceBack" /></label>
+                <label class="secondary-btn">Galeria<input type="file" accept="image/*" multiple data-photo-bucket="invoiceBack" /></label>
+              </div>
+              <div id="previewInvoiceBack" class="preview-list"></div>
+            </div>
           </div>
         </section>
 
         <section class="panel">
-          <h2>Notas y firma</h2>
+          <h2>Notas y firmas</h2>
           <label class="full">
             Observaciones
             <textarea id="visitNotes" rows="4" placeholder="Detalle de fallas, repuestos, calibracion, recomendaciones o pendientes"></textarea>
@@ -139,8 +196,18 @@
               <input id="receiverName" placeholder="Nombre de quien firma" />
             </label>
             <div class="signature-box">
-              <canvas id="signatureCanvas" width="760" height="220" aria-label="Firma del cliente"></canvas>
+              <span>Firma del cliente</span>
+              <canvas id="signatureCanvas" data-signature="client" aria-label="Firma del cliente"></canvas>
               <button id="clearSignatureBtn" class="secondary-btn" type="button">Limpiar firma</button>
+            </div>
+            <label>
+              Firmado por trabajador
+              <input id="workerSignerName" placeholder="Nombre del trabajador que firma" />
+            </label>
+            <div class="signature-box">
+              <span>Firma del trabajador</span>
+              <canvas id="workerSignatureCanvas" data-signature="worker" aria-label="Firma del trabajador"></canvas>
+              <button id="clearWorkerSignatureBtn" class="secondary-btn" type="button">Limpiar firma</button>
             </div>
           </div>
           <div class="final-actions">

@@ -192,6 +192,14 @@ label {
   font-weight: 700;
 }
 
+.field-label {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 input, select, textarea {
   width: 100%;
   border: 1px solid var(--line);
@@ -290,6 +298,18 @@ textarea {
   display: none;
 }
 
+.photo-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.photo-actions .secondary-btn {
+  min-height: 38px;
+  font-size: 13px;
+}
+
 .preview-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -314,7 +334,12 @@ canvas {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
+  display: block;
+  cursor: crosshair;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .final-actions {

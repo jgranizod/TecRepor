@@ -27,7 +27,7 @@ const defaultSteps = [
   ["Estandar", "Correctivo", "Detallado", "Correccion aplicada", "Registrar pieza, ajuste, limpieza, reparacion o cambio realizado con detalle suficiente."],
   ["Estandar", "Correctivo", "Critico", "Entrega y conformidad", "Probar con el cliente, dejar observaciones y obtener firma de recibido."],
 ].map(([machine, type, level, title, description], index) => ({
-  id: crypto.randomUUID(),
+  id: uid(),
   machine,
   type,
   level,
@@ -43,6 +43,11 @@ let deferredInstallPrompt = null;
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+function uid() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
@@ -64,11 +69,12 @@ function saveState() {
 
 function defaultVisit() {
   return {
-    id: crypto.randomUUID(),
-    photos: { before: [], work: [], tests: [] },
+    id: uid(),
+    photos: { before: [], work: [], tests: [], invoiceFront: [], invoiceBack: [] },
     checks: {},
     notesByStep: {},
     signature: "",
+    workerSignature: "",
   };
 }
 
@@ -204,17 +210,28 @@ function renderHistory() {
 }
 
 function collectVisit() {
+  updateKmUsed();
   return {
     ...currentVisit,
     clientName: $("#clientName").value.trim(),
     technicianName: $("#technicianName").value.trim(),
+    additionalWorkers: $("#additionalWorkers").value.trim(),
     machineType: $("#machineType").value,
     maintenanceType: $("#maintenanceType").value,
     machineSerial: $("#machineSerial").value.trim(),
     visitDate: $("#visitDate").value,
+    departureTime: $("#departureTime").value,
+    workStartTime: $("#workStartTime").value,
+    workEndTime: $("#workEndTime").value,
+    returnTime: $("#returnTime").value,
+    kmStart: $("#kmStart").value,
+    kmEnd: $("#kmEnd").value,
+    kmUsed: $("#kmUsed").value,
     visitNotes: $("#visitNotes").value.trim(),
     receiverName: $("#receiverName").value.trim(),
-    signature: currentVisit.signature || getSignatureData(),
+    workerSignerName: $("#workerSignerName").value.trim(),
+    signature: currentVisit.signature || getSignatureData("#signatureCanvas"),
+    workerSignature: currentVisit.workerSignature || getSignatureData("#workerSignatureCanvas"),
     savedAt: new Date().toISOString(),
   };
 }
@@ -223,20 +240,31 @@ function fillVisit(visit) {
   currentVisit = {
     ...defaultVisit(),
     ...visit,
-    photos: visit.photos || { before: [], work: [], tests: [] },
+    photos: { before: [], work: [], tests: [], invoiceFront: [], invoiceBack: [], ...(visit.photos || {}) },
     checks: visit.checks || {},
     notesByStep: visit.notesByStep || {},
   };
   $("#clientName").value = currentVisit.clientName || "";
   $("#technicianName").value = currentVisit.technicianName || "";
+  $("#additionalWorkers").value = currentVisit.additionalWorkers || "";
   $("#machineType").value = currentVisit.machineType || "Contadora";
   $("#maintenanceType").value = currentVisit.maintenanceType || "Preventivo";
   $("#machineSerial").value = currentVisit.machineSerial || "";
   $("#visitDate").value = currentVisit.visitDate || today();
+  $("#departureTime").value = currentVisit.departureTime || "";
+  $("#workStartTime").value = currentVisit.workStartTime || "";
+  $("#workEndTime").value = currentVisit.workEndTime || "";
+  $("#returnTime").value = currentVisit.returnTime || "";
+  $("#kmStart").value = currentVisit.kmStart || "";
+  $("#kmEnd").value = currentVisit.kmEnd || "";
+  $("#kmUsed").value = currentVisit.kmUsed || "";
+  updateKmUsed();
   $("#visitNotes").value = currentVisit.visitNotes || "";
   $("#receiverName").value = currentVisit.receiverName || "";
+  $("#workerSignerName").value = currentVisit.workerSignerName || "";
   renderPhotoPreviews();
-  drawSignature(currentVisit.signature);
+  drawSignature("#signatureCanvas", currentVisit.signature);
+  drawSignature("#workerSignatureCanvas", currentVisit.workerSignature);
   renderChecklist();
 }
 
@@ -260,10 +288,30 @@ async function handleEvidence(input, bucket) {
   renderPhotoPreviews();
 }
 
+function updateKmUsed() {
+  const kmStart = $("#kmStart");
+  const kmEnd = $("#kmEnd");
+  const kmUsed = $("#kmUsed");
+  if (!kmStart || !kmEnd || !kmUsed) return;
+  if (kmStart.value === "" || kmEnd.value === "") {
+    kmUsed.value = "";
+    return;
+  }
+  const start = Number(kmStart.value);
+  const end = Number(kmEnd.value);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+    kmUsed.value = "";
+    return;
+  }
+  kmUsed.value = `${Math.max(0, end - start).toFixed(1)} km`;
+}
+
 function renderPhotoPreviews() {
   renderPreview("#previewBefore", currentVisit.photos.before);
   renderPreview("#previewWork", currentVisit.photos.work);
   renderPreview("#previewTests", currentVisit.photos.tests);
+  renderPreview("#previewInvoiceFront", currentVisit.photos.invoiceFront);
+  renderPreview("#previewInvoiceBack", currentVisit.photos.invoiceBack);
 }
 
 function renderPreview(selector, images) {
@@ -271,22 +319,37 @@ function renderPreview(selector, images) {
   target.innerHTML = images.map((src, index) => `<img alt="Evidencia ${index + 1}" src="${src}">`).join("");
 }
 
-function setupSignature() {
-  const canvas = $("#signatureCanvas");
+function setupSignatureCanvas(selector, fieldName) {
+  const canvas = $(selector);
   const ctx = canvas.getContext("2d");
+  const cssHeight = 180;
   let drawing = false;
+
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    const saved = canvas.toDataURL("image/png");
+    canvas.width = Math.max(1, Math.floor(rect.width * ratio));
+    canvas.height = Math.floor(cssHeight * ratio);
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#17211d";
+    if (saved && saved.length > 1000) drawSignature(selector, saved);
+  }
 
   function point(event) {
     const rect = canvas.getBoundingClientRect();
-    const source = event.touches ? event.touches[0] : event;
     return {
-      x: (source.clientX - rect.left) * (canvas.width / rect.width),
-      y: (source.clientY - rect.top) * (canvas.height / rect.height),
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
     };
   }
 
   function start(event) {
     drawing = true;
+    canvas.setPointerCapture(event.pointerId);
     const p = point(event);
     ctx.beginPath();
     ctx.moveTo(p.x, p.y);
@@ -301,40 +364,63 @@ function setupSignature() {
     ctx.strokeStyle = "#17211d";
     ctx.lineTo(p.x, p.y);
     ctx.stroke();
-    currentVisit.signature = getSignatureData();
+    currentVisit[fieldName] = getSignatureData(selector);
     event.preventDefault();
   }
 
-  function end() {
+  function end(event) {
+    if (!drawing) return;
     drawing = false;
-    currentVisit.signature = getSignatureData();
+    if (event && canvas.hasPointerCapture(event.pointerId)) {
+      canvas.releasePointerCapture(event.pointerId);
+    }
+    currentVisit[fieldName] = getSignatureData(selector);
   }
 
-  canvas.addEventListener("mousedown", start);
-  canvas.addEventListener("mousemove", move);
-  window.addEventListener("mouseup", end);
-  canvas.addEventListener("touchstart", start, { passive: false });
-  canvas.addEventListener("touchmove", move, { passive: false });
-  canvas.addEventListener("touchend", end);
+  canvas.style.height = `${cssHeight}px`;
+  resizeCanvas();
+  window.addEventListener("resize", resizeCanvas);
+  canvas.addEventListener("pointerdown", start);
+  canvas.addEventListener("pointermove", move);
+  canvas.addEventListener("pointerup", end);
+  canvas.addEventListener("pointercancel", end);
 }
 
-function getSignatureData() {
-  return $("#signatureCanvas").toDataURL("image/png");
+function setupSignature() {
+  setupSignatureCanvas("#signatureCanvas", "signature");
+  setupSignatureCanvas("#workerSignatureCanvas", "workerSignature");
 }
 
-function drawSignature(dataUrl) {
-  const canvas = $("#signatureCanvas");
+function getSignatureData(selector) {
+  return $(selector).toDataURL("image/png");
+}
+
+function drawSignature(selector, dataUrl) {
+  const canvas = $(selector);
   const ctx = canvas.getContext("2d");
+  const previous = ctx.getTransform();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.setTransform(previous);
   if (!dataUrl) return;
   const img = new Image();
-  img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  img.onload = () => {
+    const transform = ctx.getTransform();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    ctx.setTransform(transform);
+  };
   img.src = dataUrl;
 }
 
 function clearSignature() {
   currentVisit.signature = "";
-  drawSignature("");
+  drawSignature("#signatureCanvas", "");
+}
+
+function clearWorkerSignature() {
+  currentVisit.workerSignature = "";
+  drawSignature("#workerSignatureCanvas", "");
 }
 
 function printReport() {
@@ -350,7 +436,7 @@ async function saveProcedure(event) {
   const file = $("#stepPhoto").files[0];
   const photo = file ? await fileToDataUrl(file) : "";
   state.steps.push({
-    id: crypto.randomUUID(),
+    id: uid(),
     machine: $("#editorMachine").value,
     type: $("#editorType").value,
     level: $("#stepLevel").value,
@@ -463,13 +549,16 @@ function wireEvents() {
   $("#maintenanceType").addEventListener("change", renderChecklist);
   $("#editorMachine").addEventListener("change", renderProcedures);
   $("#editorType").addEventListener("change", renderProcedures);
-  $("#photoBefore").addEventListener("change", (event) => handleEvidence(event.target, "before"));
-  $("#photoWork").addEventListener("change", (event) => handleEvidence(event.target, "work"));
-  $("#photoTests").addEventListener("change", (event) => handleEvidence(event.target, "tests"));
+  $("#kmStart").addEventListener("input", updateKmUsed);
+  $("#kmEnd").addEventListener("input", updateKmUsed);
+  $$("[data-photo-bucket]").forEach((input) => {
+    input.addEventListener("change", (event) => handleEvidence(event.target, event.target.dataset.photoBucket));
+  });
   $("#saveVisitBtn").addEventListener("click", saveVisit);
   $("#printReportBtn").addEventListener("click", printReport);
   $("#resetVisitBtn").addEventListener("click", newVisit);
   $("#clearSignatureBtn").addEventListener("click", clearSignature);
+  $("#clearWorkerSignatureBtn").addEventListener("click", clearWorkerSignature);
   $("#stepEditor").addEventListener("submit", saveProcedure);
   $("#exportBtn").addEventListener("click", exportData);
   $("#importFile").addEventListener("change", (event) => importData(event.target));
