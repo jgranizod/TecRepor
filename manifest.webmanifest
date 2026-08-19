@@ -1,0 +1,16 @@
+{
+  "name": "Bitacora Tecnica Offline",
+  "short_name": "Bitacora",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f3f5f1",
+  "theme_color": "#20312b",
+  "description": "Checklist offline para visitas tecnicas, evidencias, pruebas y firma de cliente.",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}

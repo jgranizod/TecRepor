@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#20312b" />
+    <title>Bitacora Tecnica Offline</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Procedimientos de maquinas</p>
+        <h1>Bitacora Tecnica Offline</h1>
+      </div>
+      <div class="top-actions">
+        <button id="installBtn" class="icon-btn hidden" type="button" title="Instalar app">
+          <span aria-hidden="true">APP</span>
+          <span>Instalar</span>
+        </button>
+        <button id="exportBtn" class="icon-btn" type="button" title="Exportar datos">
+          <span aria-hidden="true">EX</span>
+          <span>Exportar</span>
+        </button>
+        <label class="icon-btn file-action" title="Importar respaldo">
+          <span aria-hidden="true">IM</span>
+          <span>Importar</span>
+          <input id="importFile" type="file" accept="application/json" />
+        </label>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="sidebar" aria-label="Navegacion principal">
+        <button class="nav-btn active" data-view="visitView" type="button">
+          <span aria-hidden="true">[ ]</span>
+          <span>Visita actual</span>
+        </button>
+        <button class="nav-btn" data-view="stepsView" type="button">
+          <span aria-hidden="true">#</span>
+          <span>Procedimientos</span>
+        </button>
+        <button class="nav-btn" data-view="historyView" type="button">
+          <span aria-hidden="true">H</span>
+          <span>Historial</span>
+        </button>
+      </aside>
+
+      <section id="visitView" class="view active">
+        <div class="panel visit-header">
+          <div>
+            <h2>Registro de visita</h2>
+            <p>Completa datos, evidencias, pruebas y firma del cliente.</p>
+          </div>
+          <div class="status-pill" id="offlineStatus">Offline listo</div>
+        </div>
+
+        <form id="visitForm" class="panel form-grid">
+          <label>
+            Cliente
+            <input id="clientName" name="clientName" autocomplete="organization" placeholder="Nombre del cliente" required />
+          </label>
+          <label>
+            Tecnico
+            <input id="technicianName" name="technicianName" autocomplete="name" placeholder="Nombre del tecnico" required />
+          </label>
+          <label>
+            Tipo de maquina
+            <select id="machineType" name="machineType">
+              <option>Contadora</option>
+              <option>Bascula</option>
+              <option>Estandar</option>
+            </select>
+          </label>
+          <label>
+            Tipo de mantenimiento
+            <select id="maintenanceType" name="maintenanceType">
+              <option value="Preventivo">Mantenimiento preventivo</option>
+              <option value="Correctivo">Mantenimiento correctivo</option>
+            </select>
+          </label>
+          <label>
+            Serie / identificacion
+            <input id="machineSerial" name="machineSerial" placeholder="Serie, codigo interno o ubicacion" />
+          </label>
+          <label>
+            Fecha
+            <input id="visitDate" name="visitDate" type="date" required />
+          </label>
+        </form>
+
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <h2>Checklist de trabajo</h2>
+              <p id="stepContext">Pasos cargados para la maquina seleccionada.</p>
+            </div>
+            <button id="resetVisitBtn" class="secondary-btn" type="button">Nueva visita</button>
+          </div>
+          <div id="checklist" class="checklist"></div>
+        </section>
+
+        <section class="panel evidence-panel">
+          <div class="section-head">
+            <div>
+              <h2>Evidencias generales</h2>
+              <p>Adjunta fotos antes, despues y durante pruebas.</p>
+            </div>
+          </div>
+          <div class="evidence-grid">
+            <label class="photo-drop">
+              <span>Antes de trabajar</span>
+              <input id="photoBefore" type="file" accept="image/*" capture="environment" multiple />
+              <div id="previewBefore" class="preview-list"></div>
+            </label>
+            <label class="photo-drop">
+              <span>Trabajo realizado</span>
+              <input id="photoWork" type="file" accept="image/*" capture="environment" multiple />
+              <div id="previewWork" class="preview-list"></div>
+            </label>
+            <label class="photo-drop">
+              <span>Pruebas</span>
+              <input id="photoTests" type="file" accept="image/*" capture="environment" multiple />
+              <div id="previewTests" class="preview-list"></div>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Notas y firma</h2>
+          <label class="full">
+            Observaciones
+            <textarea id="visitNotes" rows="4" placeholder="Detalle de fallas, repuestos, calibracion, recomendaciones o pendientes"></textarea>
+          </label>
+          <div class="signature-area">
+            <label>
+              Recibido por
+              <input id="receiverName" placeholder="Nombre de quien firma" />
+            </label>
+            <div class="signature-box">
+              <canvas id="signatureCanvas" width="760" height="220" aria-label="Firma del cliente"></canvas>
+              <button id="clearSignatureBtn" class="secondary-btn" type="button">Limpiar firma</button>
+            </div>
+          </div>
+          <div class="final-actions">
+            <button id="saveVisitBtn" class="primary-btn" type="button">Guardar visita</button>
+            <button id="printReportBtn" class="secondary-btn" type="button">Imprimir / PDF</button>
+          </div>
+        </section>
+      </section>
+
+      <section id="stepsView" class="view">
+        <div class="panel section-head">
+          <div>
+            <h2>Editor de procedimientos</h2>
+            <p>Agrega pasos, elimina los que no apliquen y guarda fotos de referencia.</p>
+          </div>
+          <button id="addStepBtn" class="primary-btn" type="button">Agregar paso</button>
+        </div>
+        <form id="stepEditor" class="panel form-grid">
+          <label>
+            Maquina
+            <select id="editorMachine">
+              <option>Contadora</option>
+              <option>Bascula</option>
+              <option>Estandar</option>
+            </select>
+          </label>
+          <label>
+            Mantenimiento
+            <select id="editorType">
+              <option value="Preventivo">Preventivo</option>
+              <option value="Correctivo">Correctivo</option>
+            </select>
+          </label>
+          <label>
+            Titulo del paso
+            <input id="stepTitle" placeholder="Ej. Tomar fotos iniciales" />
+          </label>
+          <label>
+            Prioridad
+            <select id="stepLevel">
+              <option>Basico</option>
+              <option>Detallado</option>
+              <option>Critico</option>
+            </select>
+          </label>
+          <label class="full">
+            Descripcion
+            <textarea id="stepDescription" rows="4" placeholder="Explica que hacer, donde hacerlo, por que importa y que revisar"></textarea>
+          </label>
+          <label class="full photo-inline">
+            Foto de referencia
+            <input id="stepPhoto" type="file" accept="image/*" />
+          </label>
+          <button class="primary-btn" type="submit">Guardar paso</button>
+        </form>
+        <div id="procedureList" class="procedure-list"></div>
+      </section>
+
+      <section id="historyView" class="view">
+        <div class="panel section-head">
+          <div>
+            <h2>Historial local</h2>
+            <p>Visitas guardadas en este navegador.</p>
+          </div>
+          <button id="clearHistoryBtn" class="danger-btn" type="button">Borrar historial</button>
+        </div>
+        <div id="historyList" class="history-list"></div>
+      </section>
+    </main>
+
+    <template id="stepTemplate">
+      <article class="step-card">
+        <label class="check-wrap">
+          <input type="checkbox" />
+          <span></span>
+        </label>
+        <div class="step-body">
+          <div class="step-meta"></div>
+          <p></p>
+          <label class="step-note">
+            Nota del paso
+            <textarea rows="2" placeholder="Resultado, medicion, ajuste o pendiente"></textarea>
+          </label>
+        </div>
+        <figure class="step-photo hidden">
+          <img alt="Referencia del paso" />
+        </figure>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>

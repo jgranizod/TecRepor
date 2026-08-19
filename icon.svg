@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="Bitacora Tecnica">
+  <rect width="192" height="192" rx="34" fill="#20312b"/>
+  <rect x="44" y="36" width="104" height="124" rx="12" fill="#ffffff"/>
+  <path d="M70 78l14 14 34-38" fill="none" stroke="#2f6f61" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M66 112h60M66 134h42" fill="none" stroke="#20312b" stroke-width="10" stroke-linecap="round"/>
+  <rect x="72" y="24" width="48" height="24" rx="8" fill="#b6523a"/>
+</svg>
